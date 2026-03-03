@@ -1564,15 +1564,14 @@ function logDivider(title = '') {
 }
 
 
-    async function runMahsulotMulti(cfg, shablonList, labList) {
-  // ✅ НУЖНО: Shablon i + Lab i (PAIR), а не все со всеми
-logDivider(`Mahsulot №${cfg.mahsulot}`);
-logLine(`Soni="${cfg.soni}"  Olchov="${cfg.olchov}"`, 'dim');
-logLine(`Pairs: shablonList=${(shablonList||[]).length}, labList=${(labList||[]).length}`, 'dim');
+   async function runMahsulotMulti(cfg, shablonList, labList) {
+  logDivider(`Mahsulot №${cfg.mahsulot}`);
+  logLine(`Soni="${cfg.soni}"  Olchov="${cfg.olchov}"`, 'dim');
+
   const S = (shablonList || []).map(x => (x ?? '').toString().trim()).filter(Boolean);
   const L = (labList    || []).map(x => (x ?? '').toString().trim()).filter(Boolean);
 
-  // если оба пустые — fallback на одиночные поля
+  // fallback: одиночные поля
   if (!S.length && !L.length) {
     const fallbackSh = (cfg.shablon || '').toString().trim();
     const fallbackLb = (cfg.labNumber || '').toString().trim();
@@ -1583,14 +1582,9 @@ logLine(`Pairs: shablonList=${(shablonList||[]).length}, labList=${(labList||[])
 
       if (fallbackSh) await selectOneShablon(dialog, fallbackSh);
       if (fallbackLb) await selectOneLab(dialog, fallbackLb);
-if (fallbackSh) logLine(`  ✅ Shablon выбран: ${fallbackSh}`, 'ok');
-else logLine(`  ⏭️ Shablon пустой`, 'warn');
 
-if (fallbackLb) logLine(`  ✅ Lab выбран: ${fallbackLb}`, 'ok');
-else logLine(`  ⏭️ Lab пустая`, 'warn');
-
-await saveAndWaitClose(dialog);
-logLine(`  💾 Saqlash OK (fallback)`, 'ok');
+      await saveAndWaitClose(dialog);
+      logLine(`  💾 Saqlash OK (fallback)`, 'ok');
       return true;
     }, { tries: 8, delay: 600, maxDelay: 5000, label: `Mahsulot#${cfg.mahsulot} fallback` });
 
@@ -1598,54 +1592,33 @@ logLine(`  💾 Saqlash OK (fallback)`, 'ok');
     return;
   }
 
-  // ✅ PAIR: берем по индексу. Если списки разной длины — тянем последний элемент.
   const n = Math.max(S.length, L.length);
 
- for (let i = 0; i < n; i++) {
-  const sh = S[i] ?? S[S.length - 1] ?? '';
-  const lb = L[i] ?? L[L.length - 1] ?? '';
+  for (let i = 0; i < n; i++) {
+    const sh = S[i] ?? S[S.length - 1] ?? '';
+    const lb = L[i] ?? L[L.length - 1] ?? '';
 
-  if (!sh && !lb) {
-    logLine(`Пара ${i+1}/${n}: пусто → пропуск`, 'warn');
-    continue;
-  }
+    if (!sh && !lb) {
+      logLine(`Пара ${i+1}/${n}: пусто → пропуск`, 'warn');
+      continue;
+    }
 
-  logLine(`Пара ${i+1}/${n}: Shablon="${sh}" | Lab="${lb}"`, 'info');
-
-  setExcelProgress?.(`🧱 Mahsulot №${cfg.mahsulot}: пара ${i + 1}/${n} (Shablon${i+1} + Lab${i+1})`);
-
-  await retry(async () => {
-    const dialog = await openMahsulotDialogByNo(cfg.mahsulot);
-
-    await fillDialogCommonFields(dialog, cfg);
-
-    if (sh) await selectOneShablon(dialog, sh);
-    if (lb) await selectOneLab(dialog, lb);
-
-    await saveAndWaitClose(dialog);
-    logLine(`  💾 Saqlash OK (пара ${i+1})`, 'ok');
-    return true;
-  }, { tries: 8, delay: 600, maxDelay: 5000, label: `Mahsulot#${cfg.mahsulot} pair ${i + 1}` });
-
-  await sleep(s(80));
-
-
-    setExcelProgress?.(`🧱 Mahsulot №${cfg.mahsulot}: пара ${i + 1}/${n} (Shablon${i+1} + Lab${i+1})`);
+    logLine(`Пара ${i+1}/${n}: Shablon="${sh}" | Lab="${lb}"`, 'info');
+    setExcelProgress?.(`🧱 Mahsulot №${cfg.mahsulot}: пара ${i + 1}/${n}`);
 
     await retry(async () => {
       const dialog = await openMahsulotDialogByNo(cfg.mahsulot);
-
       await fillDialogCommonFields(dialog, cfg);
 
-      // ✅ выбираем ровно 1 шаблон + 1 лабу
       if (sh) await selectOneShablon(dialog, sh);
       if (lb) await selectOneLab(dialog, lb);
 
       await saveAndWaitClose(dialog);
+      logLine(`  💾 Saqlash OK (пара ${i+1})`, 'ok');
       return true;
     }, { tries: 8, delay: 600, maxDelay: 5000, label: `Mahsulot#${cfg.mahsulot} pair ${i + 1}` });
 
-    await sleep(s(80));
+    await sleep(s(120));
   }
 }
 
